@@ -1,0 +1,161 @@
+//@version=5
+indicator("EMA Super - Distance & Slope Analysis", overlay=true)
+
+// ============ 输入参数 ============
+ema1Length = input.int(20, "快线 EMA1 周期", minval=1)
+ema2Length = input.int(50, "慢线 EMA2 周期", minval=1)
+calcPeriod = input.int(5, "计算周期 N", minval=1, tooltip="用于计算距离和斜率的回溯周期数")
+
+// EMA线条颜色
+ema1Color = input.color(color.new(color.blue, 0), "快线颜色")
+ema2Color = input.color(color.new(color.red, 0), "慢线颜色")
+
+// 距离和斜率显示选项
+showDistance = input.bool(true, "显示EMA距离")
+showSlope = input.bool(true, "显示EMA斜率")
+showDistanceChange = input.bool(true, "显示距离变化趋势")
+showAsPercent = input.bool(true, "以百分比显示", tooltip="勾选后所有数值以价格百分比显示，适合跨品种对比")
+
+// ============ EMA计算 ============
+ema1 = ta.ema(close, ema1Length)
+ema2 = ta.ema(close, ema2Length)
+
+// ============ 距离计算（不包含当前K线） ============
+// 使用前一根已收盘的K线数据
+ema1_prev = ema1[1]
+ema2_prev = ema2[1]
+
+// 计算N周期前的EMA值
+ema1_n = ema1[calcPeriod + 1]
+ema2_n = ema2[calcPeriod + 1]
+
+// 计算两条EMA之间的绝对距离（基于已收盘K线）
+distance = math.abs(ema1_prev - ema2_prev)
+
+// 计算N周期前的距离
+distance_n = math.abs(ema1_n - ema2_n)
+
+// 计算距离的N周期变化（用于判断扩张/收缩）
+distanceChange = distance - distance_n
+
+// 判断距离是在扩张还是收缩
+isExpanding = distanceChange > 0  // 距离变宽
+isContracting = distanceChange < 0  // 距离变窄
+
+// 距离的斜率：N周期距离变化率
+distanceSlope = distanceChange / calcPeriod
+
+// ============ 斜率计算（N周期导数，不包含当前K线） ============
+// EMA1的斜率：(前一根K线的值 - N周期前的值) / N
+ema1Slope = (ema1_prev - ema1_n) / calcPeriod
+ema2Slope = (ema2_prev - ema2_n) / calcPeriod
+
+// ============ 百分比转换（相对于前一根K线的收盘价） ============
+prevClose = close[1]
+distancePercent = (distance / prevClose) * 100
+distanceChangePercent = (distanceChange / prevClose) * 100
+ema1SlopePercent = (ema1Slope / prevClose) * 100
+ema2SlopePercent = (ema2Slope / prevClose) * 100
+distanceSlopePercent = (distanceSlope / prevClose) * 100
+
+// ============ 绘制EMA线 ============
+plot(ema1, "快线 EMA1", color=ema1Color, linewidth=2)
+plot(ema2, "慢线 EMA2", color=ema2Color, linewidth=2)
+
+// 用背景色显示EMA之间的区域
+ema1Above = ema1 > ema2
+fillColor = ema1Above ? color.new(color.green, 90) : color.new(color.red, 90)
+fill(plot(ema1), plot(ema2), color=fillColor, title="EMA区域填充")
+
+// ============ 距离和斜率指标绘制（副图） ============
+// 在单独的窗口中显示距离
+// plot(distance, "EMA距离", color=color.new(color.purple, 0), linewidth=2, display=display.none)
+
+// ============ 信息面板 ============
+var table infoTable = table.new(position.top_right, 2, 8, 
+     border_width=1, 
+     border_color=color.gray, 
+     frame_width=1, 
+     frame_color=color.gray)
+
+if barstate.islast and (showDistance or showSlope or showDistanceChange)
+    // 标题
+    table.cell(infoTable, 0, 0, "指标", text_color=color.white, bgcolor=color.new(color.gray, 30), text_size=size.small)
+    table.cell(infoTable, 1, 0, "数值", text_color=color.white, bgcolor=color.new(color.gray, 30), text_size=size.small)
+    
+    row = 1
+    
+    // 距离信息
+    if showDistance
+        table.cell(infoTable, 0, row, "EMA距离", text_color=color.white, text_size=size.small)
+        distValue = showAsPercent ? str.tostring(distancePercent, "#.####") + "%" : str.tostring(distance, "#.#####")
+        table.cell(infoTable, 1, row, distValue, 
+             text_color=color.yellow, text_size=size.small)
+        row := row + 1
+        
+        table.cell(infoTable, 0, row, "N周期距离变化", text_color=color.white, text_size=size.small)
+        distChangeValue = showAsPercent ? str.tostring(distanceChangePercent, "#.####") + "%" : str.tostring(distanceChange, "#.#####")
+        table.cell(infoTable, 1, row, distChangeValue, 
+             text_color=color.yellow, text_size=size.small)
+        row := row + 1
+    
+    // 距离变化趋势
+    if showDistanceChange
+        trendText = isExpanding ? "扩张 ↗" : isContracting ? "收缩 ↘" : "持平 →"
+        trendColor = isExpanding ? color.lime : isContracting ? color.orange : color.gray
+        
+        table.cell(infoTable, 0, row, "距离趋势", text_color=color.white, text_size=size.small)
+        table.cell(infoTable, 1, row, trendText, text_color=trendColor, text_size=size.small)
+        row := row + 1
+    
+    // 斜率信息
+    if showSlope
+        table.cell(infoTable, 0, row, "快线斜率", text_color=color.white, text_size=size.small)
+        slopeColor1 = ema1Slope > 0 ? color.lime : color.red
+        slope1Value = showAsPercent ? str.tostring(ema1SlopePercent, "#.#####") + "%" : str.tostring(ema1Slope, "#.#####")
+        table.cell(infoTable, 1, row, slope1Value, 
+             text_color=slopeColor1, text_size=size.small)
+        row := row + 1
+        
+        table.cell(infoTable, 0, row, "慢线斜率", text_color=color.white, text_size=size.small)
+        slopeColor2 = ema2Slope > 0 ? color.lime : color.red
+        slope2Value = showAsPercent ? str.tostring(ema2SlopePercent, "#.#####") + "%" : str.tostring(ema2Slope, "#.#####")
+        table.cell(infoTable, 1, row, slope2Value, 
+             text_color=slopeColor2, text_size=size.small)
+        row := row + 1
+        
+        table.cell(infoTable, 0, row, "距离斜率", text_color=color.white, text_size=size.small)
+        slopeColorDist = distanceSlope > 0 ? color.aqua : color.fuchsia
+        slopeDistValue = showAsPercent ? str.tostring(distanceSlopePercent, "#.#####") + "%" : str.tostring(distanceSlope, "#.#####")
+        table.cell(infoTable, 1, row, slopeDistValue, 
+             text_color=slopeColorDist, text_size=size.small)
+
+// ============ 可视化标记 ============
+// 当距离开始扩张时标记
+plotshape(showDistanceChange and isExpanding and not isExpanding[1], 
+     title="距离开始扩张", 
+     location=location.belowbar, 
+     color=color.new(color.lime, 0), 
+     style=shape.triangleup, 
+     size=size.tiny)
+
+// 当距离开始收缩时标记
+plotshape(showDistanceChange and isContracting and not isContracting[1], 
+     title="距离开始收缩", 
+     location=location.abovebar, 
+     color=color.new(color.orange, 0), 
+     style=shape.triangledown, 
+     size=size.tiny)
+
+// ============ 警报条件 ============
+alertcondition(isExpanding and not isExpanding[1], 
+     title="EMA距离开始扩张", 
+     message="EMA距离开始扩张 - 趋势可能加强")
+
+alertcondition(isContracting and not isContracting[1], 
+     title="EMA距离开始收缩", 
+     message="EMA距离开始收缩 - 趋势可能减弱")
+
+alertcondition(ta.cross(ema1, ema2), 
+     title="EMA交叉", 
+     message="EMA快慢线发生交叉")

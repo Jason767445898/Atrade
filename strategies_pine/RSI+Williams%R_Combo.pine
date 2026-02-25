@@ -1,0 +1,41 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © lijason032
+
+//@version=5
+indicator("RSI + Williams %R Combo", overlay=false)
+
+
+// === Inputs ===
+rsiLength   = input.int(30, "RSI Length", minval=2)
+wprLength   = input.int(34, "Williams %R Length", minval=2)
+wprSmooth   = input.int(1, "Williams %R Smoothing", minval=1, maxval=20, tooltip="平滑周期,数值越大越丝滑")
+
+// === Core Calculations ===
+rsiValue = ta.rsi(close, rsiLength)
+wprRaw   = ta.wpr(wprLength)   // ✅ Correct usage
+// Apply smoothing to Williams %R
+wprValue = ta.sma(wprRaw, wprSmooth)
+// Normalize Williams %R (-100 to 0) into 0–100 scale
+wprNorm = 100 + wprValue
+
+
+// === Conditions ===
+// Long bias: RSI > 50, WPR dips below RSI then crosses back above
+longBias  = rsiValue > 50 and ta.crossover(wprNorm, rsiValue)
+// Short bias: RSI < 50, WPR rises above RSI then crosses back below
+shortBias = rsiValue < 50 and ta.crossunder(wprNorm, rsiValue)
+
+// === Plotting ===
+plot(rsiValue, "RSI", color=color.blue, linewidth=2)
+plot(wprNorm, "Williams %R (norm)", color=color.orange, linewidth=2)
+
+// Horizontal reference lines
+hline(50, "RSI Midline", color=color.rgb(255, 255, 255))
+hline(80, "Overbought", color=color.purple)
+hline(20, "Oversold", color=color.purple)
+
+// === Signal Markers ===
+plotshape(longBias, title="Long Signal", style=shape.triangleup, 
+          location=location.bottom, color=color.green, size=size.small, text="BUY")
+plotshape(shortBias, title="Short Signal", style=shape.triangledown, 
+          location=location.top, color=color.red, size=size.small, text="SELL")
