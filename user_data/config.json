@@ -1,0 +1,87 @@
+
+{
+    "$schema": "https://schema.freqtrade.io/schema.json",
+    "max_open_trades": 2,
+    "stake_currency": "USDT",
+    "stake_amount": "unlimited",
+    "tradable_balance_ratio": 1,
+    "fiat_display_currency": "USD",
+    "dry_run": true,
+    "dry_run_wallet": 1000,
+    "cancel_open_orders_on_exit": false,
+    "trading_mode": "futures",
+    "margin_mode": "isolated",
+    "unfilledtimeout": {
+        "entry": 10,
+        "exit": 10,
+        "exit_timeout_count": 0,
+        "unit": "minutes"
+    },
+    "entry_pricing": {
+        "price_side": "same",
+        "use_order_book": true,
+        "order_book_top": 1,
+        "price_last_balance": 0.0,
+        "check_depth_of_market": {
+            "enabled": false,
+            "bids_to_ask_delta": 1
+        }
+    },
+    "exit_pricing": {
+        "price_side": "same",
+        "use_order_book": true,
+        "order_book_top": 1
+    },
+    "exchange": {
+        "name": "okx",
+        "key": "0b999c6b-ad0e-4f22-82d8-2dcf1b693ff1",
+        "secret": "TAEDDC9904FE64161AD05BOB43C36E77",
+        "password": "SZph985211@",
+        "ccxt_config": {
+            "options": {
+                "defaultType": "swap"
+            }
+        },
+        "ccxt_async_config": {
+            "options": {
+                "defaultType": "swap"
+            }
+        },
+        "_ft_has_params": {
+            "ws_enabled": false
+        },
+        "pair_whitelist": [
+            "SOL/USDT:USDT"
+        ],
+        "pair_blacklist": [
+        ]
+    },
+    "pairlists": [
+        {
+            "method": "StaticPairList"
+        }
+    ],
+    "telegram": {
+        "enabled": true,
+        "token": "8125239613:AAH9HTQzou3iq6RYUMDYLid7-9I7bzPSrHo",
+        "chat_id": "7388672246"
+    },
+    "api_server": {
+        "enabled": true,
+        "listen_ip_address": "0.0.0.0",
+        "listen_port": 8080,
+        "verbosity": "error",
+        "enable_openapi": false,
+        "jwt_secret_key": "a661a703aaae5730e0a8fbdbebd7936ebe0708c33c94c3f9fab32298c8505d99",
+        "ws_token": "CescQ4_jkeCMZ95SVDOa2nne2ouuYnUA7g",
+        "CORS_origins": [],
+        "username": "Jason",
+        "password": "SZph985211"
+    },
+    "bot_name": "freqtrade",
+    "initial_state": "running",
+    "force_entry_enable": false,
+    "internals": {
+        "process_throttle_secs": 5
+    }
+}
